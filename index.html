@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Classroom Lesson Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<style>
+  :root{
+    --paper:#eee6d4;
+    --paper-deep:#e2d6bb;
+    --card:#fffdf7;
+    --ink:#20241f;
+    --ink-soft:#4b5148;
+    --rule:#c9bb9b;
+    --ledger:#16302b;
+    --ledger-deep:#0f2521;
+    --ledger-ink:#e9e4d3;
+    --ledger-ink-dim:#9fb0a8;
+    --navy:#233a63;
+    --red-pen:#a53a2c;
+    --gold:#c1902e;
+    --gold-soft:#e7cd93;
+    --radius:10px;
+    --shadow:0 1px 2px rgba(20,20,10,.06), 0 8px 24px -12px rgba(20,20,10,.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      radial-gradient(ellipse at top left, rgba(255,255,255,.35), transparent 55%),
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh;
+  }
+  h1,h2,h3,h4,.display{ font-family:'Fraunces', Georgia, serif; }
+
+  /* ===== Layout shell ===== */
+  .shell{
+    display:grid;
+    grid-template-columns: 300px 1fr;
+    min-height:100vh;
+  }
+  @media (max-width: 880px){
+    .shell{ grid-template-columns: 1fr; }
+  }
+
+  /* ===== Sidebar / register ===== */
+  .register{
+    background:linear-gradient(180deg,var(--ledger),var(--ledger-deep));
+    color:var(--ledger-ink);
+    padding:28px 18px 28px;
+    position:sticky;
+    top:0;
+    align-self:start;
+    height:100vh;
+    overflow-y:auto;
+    border-right:1px solid #0a1c18;
+  }
+  @media (max-width: 880px){
+    .register{ position:relative; height:auto; }
+  }
+  .register-brand{
+    display:flex; align-items:center; gap:12px;
+    padding:2px 6px 22px;
+    border-bottom:1px solid rgba(233,228,211,.14);
+    margin-bottom:18px;
+  }
+  .register-brand .mark{
+    width:38px; height:38px; border-radius:8px;
+    background:linear-gradient(155deg,var(--gold),#a97b21);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace; font-weight:600; color:#241a06;
+    font-size:15px; flex:none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
+  }
+  .register-brand .titles{ line-height:1.15; }
+  .register-brand .titles .t1{ font-family:'Fraunces',serif; font-size:17px; font-weight:600; color:#fff; }
+  .register-brand .titles .t2{ font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--ledger-ink-dim); margin-top:2px;}
+
+  .register-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ledger-ink-dim);
+    margin:6px 8px 10px;
+  }
+
+  .subject-list{ list-style:none; margin:0 0 8px; padding:0; display:flex; flex-direction:column; gap:3px;}
+  .subject-item{
+    display:flex; align-items:center; gap:10px;
+    padding:9px 10px;
+    border-radius:7px;
+    cursor:pointer;
+    border:1px solid transparent;
+    transition:background .12s ease, border-color .12s ease;
+  }
+  .subject-item:hover{ background:rgba(233,228,211,.07); }
+  .subject-item.active{
+    background:rgba(233,228,211,.1);
+    border-color:rgba(233,228,211,.22);
+  }
+  .subject-item .code{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px; font-weight:600;
+    width:30px; height:22px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:5px;
+    background:rgba(233,228,211,.08);
+    color:var(--ledger-ink-dim);
+    letter-spacing:.02em;
+  }
+  .subject-item.active .code{
+    background:var(--gold);
+    color:#241a06;
+  }
+  .subject-item .name{ font-size:14px; font-weight:500; color:var(--ledger-ink); }
+  .subject-item .dot{
+    margin-left:auto; width:6px; height:6px; border-radius:50%;
+    background: rgba(233,228,211,.18);
+  }
+  .subject-item.has-content .dot{ background: #6fae82; }
+
+  .register-foot{
+    margin-top:22px; padding-top:16px;
+    border-top:1px solid rgba(233,228,211,.14);
+    font-size:11.5px; color:var(--ledger-ink-dim); line-height:1.6;
+  }
+
+  /* ===== Main content ===== */
+  .main{ padding:34px 40px 80px; max-width:920px; }
+  @media (max-width: 880px){ .main{ padding:24px 18px 60px; } }
+
+  .breadcrumb{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:10px;
+    display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+  }
+  .breadcrumb .seg{ opacity:.55; }
+  .breadcrumb .seg.current{ opacity:1; color:var(--red-pen); font-weight:600; }
+  .breadcrumb .sep{ opacity:.35; }
+
+  .page-title{
+    font-size:30px; font-weight:600; margin:0 0 22px; letter-spacing:-.01em;
+    color:var(--ink);
+  }
+
+  .selector-row{
+    display:flex; flex-wrap:wrap; gap:12px;
+    margin-bottom:26px;
+    padding:16px 18px;
+    background:var(--card);
+    border:1px solid var(--rule);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  .selector-group{ display:flex; flex-direction:column; gap:5px; min-width:170px; flex:1; }
+  .selector-group label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .selector-group select{
+    font-family:'Inter',sans-serif;
+    font-size:14.5px; font-weight:500; color:var(--ink);
+    padding:9px 34px 9px 11px;
+    border-radius:7px;
+    border:1px solid var(--rule);
+    background-color:#fffef9;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234b5148' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 10px center;
+    appearance:none;
+    -webkit-appearance:none;
+    cursor:pointer;
+    transition:border-color .12s ease;
+  }
+  .selector-group select:hover{ border-color:#9c8c62; }
+  .selector-group select:focus-visible{ outline:2px solid var(--navy); outline-offset:1px; }
+
+  .lesson-card{
+    background:var(--card);
+    border:1px solid var(--rule);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .lesson-card-head{
+    padding:20px 26px 16px;
+    border-bottom:2px solid var(--paper-deep);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.5), transparent);
+  }
+  .lesson-card-head .tag{
+    display:inline-block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--navy);
+    background:#e7ecf5;
+    border:1px solid #cbd6e8;
+    padding:3px 8px;
+    border-radius:5px;
+    margin-bottom:10px;
+  }
+  .lesson-card-head h2{
+    margin:0; font-size:22px; font-weight:600; line-height:1.25;
+  }
+  .lesson-body{
+    padding:22px 26px 30px;
+    font-size:15.5px;
+    line-height:1.72;
+    color:var(--ink);
+  }
+  .lesson-body h1,.lesson-body h2,.lesson-body h3,.lesson-body h4{
+    font-family:'Fraunces',serif; font-weight:600; color:var(--ink);
+    margin:1.5em 0 .5em;
+  }
+  .lesson-body h1{ font-size:24px;}
+  .lesson-body h2{ font-size:20px; padding-bottom:.3em; border-bottom:1px solid var(--paper-deep); }
+  .lesson-body h3{ font-size:17px; color:var(--navy); }
+  .lesson-body h4{ font-size:15.5px; color:var(--red-pen); text-transform:uppercase; letter-spacing:.03em; font-size:13px;}
+  .lesson-body p{ margin:.75em 0; }
+  .lesson-body ul,.lesson-body ol{ padding-left:1.4em; margin:.6em 0; }
+  .lesson-body li{ margin:.3em 0; }
+  .lesson-body strong{ color:#111; }
+  .lesson-body blockquote{
+    margin:1em 0; padding:10px 16px;
+    border-left:3px solid var(--gold);
+    background:#fbf3de;
+    border-radius:0 6px 6px 0;
+    color:#3f351a;
+    font-style:italic;
+  }
+  .lesson-body code{
+    font-family:'IBM Plex Mono',monospace; font-size:.88em;
+    background:#eee3c9; padding:.1em .35em; border-radius:4px;
+  }
+  .lesson-body table{ border-collapse:collapse; width:100%; margin:1em 0; font-size:14px; }
+  .lesson-body th,.lesson-body td{ border:1px solid var(--rule); padding:7px 10px; text-align:left; vertical-align:top;}
+  .lesson-body th{ background:var(--paper); font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.04em;}
+  .lesson-body hr{ border:none; border-top:1px solid var(--paper-deep); margin:1.6em 0; }
+  .lesson-body a{ color:var(--navy); }
+
+  /* placeholder */
+  .placeholder{
+    padding:60px 30px;
+    text-align:center;
+  }
+  .placeholder .stamp{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:64px; height:64px; border-radius:50%;
+    border:2.5px dashed var(--rule);
+    color:var(--ink-soft);
+    font-family:'Fraunces',serif; font-size:26px; font-weight:600;
+    margin-bottom:18px;
+  }
+  .placeholder h3{ margin:0 0 8px; font-size:19px; }
+  .placeholder p{ color:var(--ink-soft); font-size:14.5px; max-width:420px; margin:0 auto; line-height:1.6;}
+
+  /* footer actions */
+  .card-actions{
+    display:flex; justify-content:flex-end; gap:10px;
+    padding:14px 26px; border-top:1px solid var(--paper-deep);
+    background:rgba(0,0,0,.012);
+  }
+  .btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px; letter-spacing:.05em; text-transform:uppercase;
+    padding:7px 13px; border-radius:6px;
+    border:1px solid var(--rule);
+    background:#fff; color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .btn:hover{ border-color:var(--navy); color:var(--navy); }
+
+  @media print{
+    .register, .selector-row, .card-actions, .breadcrumb{ display:none !important; }
+    .shell{ display:block; }
+    .main{ padding:0; max-width:none; }
+    .lesson-card{ box-shadow:none; border:none; }
+  }
+
+  ::-webkit-scrollbar{ width:10px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background:rgba(233,228,211,.18); border-radius:5px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <nav class="register" id="register">
+    <div class="register-brand">
+      <div class="mark">AB</div>
+      <div class="titles">
+        <div class="t1">Lesson Register</div>
+        <div class="t2">Aurabot Classroom</div>
+      </div>
+    </div>
+    <div class="register-label">Subjects</div>
+    <ul class="subject-list" id="subjectList"></ul>
+    <div class="register-foot">
+      Select a subject above, then narrow down using the dropdowns to open a full lesson plan.
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <h1 class="page-title" id="pageTitle">—</h1>
+    <div class="selector-row" id="selectorRow"></div>
+    <div class="lesson-card" id="lessonCard"></div>
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var SUBJECTS = [
+    { key:"devotions", code:"DV", name:"Devotions" },
+    { key:"maths",     code:"MA", name:"Maths" },
+    { key:"reading",   code:"RD", name:"Reading" },
+    { key:"writing",   code:"WR", name:"Writing" },
+    { key:"topic",     code:"TP", name:"Topic" },
+    { key:"spelling",  code:"SP", name:"Spelling" },
+    { key:"homework",  code:"HW", name:"Homework" },
+    { key:"art",       code:"AR", name:"Art" },
+    { key:"tereo",     code:"TR", name:"Te Reo Māori" },
+    { key:"pe",        code:"PE", name:"Physical Education" }
+  ];
+
+  var DATA = window.LESSON_DATA || {};
+
+  function isGroup(node){ return node && typeof node === "object" && node.children !== undefined; }
+  function hasRealContent(node){
+    if (!node) return false;
+    if (isGroup(node)) {
+      var keys = Object.keys(node.children || {});
+      if (!keys.length) return false;
+      return keys.some(function(k){ return hasRealContent(node.children[k]); });
+    }
+    return !!(node.content && node.content.trim());
+  }
+
+  var state = { subject: "devotions", path: [] };
+
+  function subjectRoot(key){ return DATA[key]; }
+
+  function renderSidebar(){
+    var list = document.getElementById("subjectList");
+    list.innerHTML = "";
+    SUBJECTS.forEach(function(s){
+      var root = subjectRoot(s.key);
+      var li = document.createElement("li");
+      li.className = "subject-item" + (s.key === state.subject ? " active" : "") + (hasRealContent(root) ? " has-content" : "");
+      li.innerHTML = '<span class="code">' + s.code + '</span><span class="name">' + s.name + '</span><span class="dot"></span>';
+      li.addEventListener("click", function(){
+        state.subject = s.key;
+        state.path = [];
+        autoFillFirstPath();
+        renderAll();
+      });
+      list.appendChild(li);
+    });
+  }
+
+  // Descend picking the first available child at every level, so a subject
+  // shows real content immediately when selected.
+  function autoFillFirstPath(){
+    var node = subjectRoot(state.subject);
+    var path = [];
+    while (node && isGroup(node)) {
+      var keys = Object.keys(node.children || {});
+      if (!keys.length) break;
+      path.push(keys[0]);
+      node = node.children[keys[0]];
+    }
+    state.path = path;
+  }
+
+  function nodeAtPath(path){
+    var node = subjectRoot(state.subject);
+    for (var i = 0; i < path.length; i++) {
+      if (!node || !isGroup(node)) return null;
+      node = node.children[path[i]];
+    }
+    return node;
+  }
+
+  function renderSelectors(){
+    var row = document.getElementById("selectorRow");
+    row.innerHTML = "";
+    var root = subjectRoot(state.subject);
+    if (!root) { row.style.display = "none"; return; }
+
+    var node = root;
+    var depth = 0;
+    var anyDropdown = false;
+
+    while (node && isGroup(node)) {
+      var keys = Object.keys(node.children || {});
+      anyDropdown = true;
+      (function(depth, keys, labelText, node){
+        var group = document.createElement("div");
+        group.className = "selector-group";
+        var label = document.createElement("label");
+        label.textContent = labelText || "Select";
+        var select = document.createElement("select");
+
+        if (!keys.length) {
+          var opt = document.createElement("option");
+          opt.textContent = "No content yet";
+          select.appendChild(opt);
+          select.disabled = true;
+        } else {
+          keys.forEach(function(k){
+            var opt = document.createElement("option");
+            opt.value = k;
+            opt.textContent = k;
+            if (state.path[depth] === k) opt.selected = true;
+            select.appendChild(opt);
+          });
+          select.addEventListener("change", function(){
+            var newPath = state.path.slice(0, depth);
+            newPath.push(select.value);
+            // fill remainder with first-available choices
+            var n = node.children[select.value];
+            while (n && isGroup(n)) {
+              var ks = Object.keys(n.children || {});
+              if (!ks.length) break;
+              newPath.push(ks[0]);
+              n = n.children[ks[0]];
+            }
+            state.path = newPath;
+            renderAll();
+          });
+        }
+
+        group.appendChild(label);
+        group.appendChild(select);
+        row.appendChild(group);
+      })(depth, keys, node.label, node);
+
+      var chosen = state.path[depth];
+      if (chosen === undefined && keys.length) chosen = keys[0];
+      node = keys.length ? node.children[chosen] : null;
+      depth++;
+    }
+
+    row.style.display = anyDropdown ? "flex" : "none";
+  }
+
+  function renderBreadcrumb(){
+    var bc = document.getElementById("breadcrumb");
+    var subj = SUBJECTS.find(function(s){ return s.key === state.subject; });
+    var parts = [subj ? subj.name : state.subject].concat(state.path);
+    bc.innerHTML = parts.map(function(p, i){
+      var isLast = i === parts.length - 1;
+      return '<span class="seg' + (isLast ? ' current' : '') + '">' + escapeHtml(p) + '</span>';
+    }).join('<span class="sep">/</span>');
+  }
+
+  function renderTitle(){
+    var subj = SUBJECTS.find(function(s){ return s.key === state.subject; });
+    var title = subj ? subj.name : state.subject;
+    document.getElementById("pageTitle").textContent = title;
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c];
+    });
+  }
+
+  function renderLesson(){
+    var card = document.getElementById("lessonCard");
+    var node = nodeAtPath(state.path);
+    var root = subjectRoot(state.subject);
+
+    if (!root) {
+      card.innerHTML = placeholderHtml("Subject not found", "This subject has no data registered yet.");
+      return;
+    }
+
+    // walk down to a leaf if node is still a group (e.g. empty branch)
+    while (node && isGroup(node)) {
+      var keys = Object.keys(node.children || {});
+      node = keys.length ? node.children[keys[0]] : null;
+    }
+
+    var content = node && node.content ? node.content.trim() : "";
+
+    if (!content) {
+      card.innerHTML = placeholderHtml(
+        "Content coming soon",
+        "There isn't a lesson plan here yet. Add markdown content following this app's data schema and it will appear automatically."
+      );
+      return;
+    }
+
+    var lastCrumb = state.path.length ? state.path[state.path.length - 1] : SUBJECTS.find(function(s){return s.key===state.subject;}).name;
+    var tag = state.path.length > 1 ? state.path[state.path.length - 2] : "Lesson";
+
+    card.innerHTML =
+      '<div class="lesson-card-head">' +
+        '<span class="tag">' + escapeHtml(tag) + '</span>' +
+        '<h2>' + escapeHtml(lastCrumb) + '</h2>' +
+      '</div>' +
+      '<div class="lesson-body" id="lessonBody"></div>' +
+      '<div class="card-actions"><button class="btn" id="printBtn">Print lesson</button></div>';
+
+    document.getElementById("lessonBody").innerHTML = marked.parse(content);
+    document.getElementById("printBtn").addEventListener("click", function(){ window.print(); });
+  }
+
+  function placeholderHtml(title, body){
+    return '<div class="placeholder">' +
+      '<div class="stamp">?</div>' +
+      '<h3>' + escapeHtml(title) + '</h3>' +
+      '<p>' + escapeHtml(body) + '</p>' +
+    '</div>';
+  }
+
+  function renderAll(){
+    renderSidebar();
+    renderTitle();
+    renderSelectors();
+    renderBreadcrumb();
+    renderLesson();
+  }
+
+  autoFillFirstPath();
+  renderAll();
+})();
+</script>
+</body>
+</html>
