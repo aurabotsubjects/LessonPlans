@@ -278,12 +278,38 @@
     cursor:pointer;
   }
   .btn:hover{ border-color:var(--navy); color:var(--navy); }
+  .btn.btn-ghost{ background:transparent; }
+  .btn[disabled]{ opacity:.5; cursor:default; }
+  .btn[disabled]:hover{ border-color:var(--rule); color:var(--ink-soft); }
+
+  /* ===== Print-all (whole subject) staging area ===== */
+  #printAllRoot{ display:none; }
+  .pa-cover{ padding:40px 0 30px; border-bottom:2px solid var(--paper-deep); margin-bottom:30px; }
+  .pa-cover .pa-eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--ink-soft); margin-bottom:8px;
+  }
+  .pa-cover h1{ margin:0 0 10px; font-size:32px; }
+  .pa-cover .pa-meta{ font-size:13px; color:var(--ink-soft); }
+  .print-lesson{ margin-bottom:10px; }
+  .print-lesson .pa-breadcrumb{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--ink-soft); margin-bottom:4px;
+  }
+  .print-lesson h2.pa-title{ margin:0 0 16px; font-size:21px; padding-bottom:.3em; border-bottom:1px solid var(--paper-deep); font-family:'Fraunces',serif; font-weight:600;}
 
   @media print{
     .register, .selector-row, .card-actions, .breadcrumb{ display:none !important; }
     .shell{ display:block; }
     .main{ padding:0; max-width:none; }
     .lesson-card{ box-shadow:none; border:none; }
+
+    body.printing-all .page-title,
+    body.printing-all .lesson-card{ display:none !important; }
+    body.printing-all #printAllRoot{ display:block; }
+    #printAllRoot .print-lesson{ page-break-before:always; }
+    #printAllRoot .print-lesson:first-child{ page-break-before:avoid; }
+    #printAllRoot table, #printAllRoot .lt-group{ page-break-inside:avoid; }
   }
 
   ::-webkit-scrollbar{ width:10px; }
@@ -316,6 +342,8 @@
     <div class="lesson-card" id="lessonCard"></div>
   </main>
 </div>
+
+<div id="printAllRoot"></div>
 
 <script src="data.js"></script>
 <script>
@@ -507,16 +535,91 @@
     var lastCrumb = state.path.length ? state.path[state.path.length - 1] : SUBJECTS.find(function(s){return s.key===state.subject;}).name;
     var tag = state.path.length > 1 ? state.path[state.path.length - 2] : "Lesson";
 
+    var subj = SUBJECTS.find(function(s){ return s.key === state.subject; });
+    var subjName = subj ? subj.name : state.subject;
+
     card.innerHTML =
       '<div class="lesson-card-head">' +
         '<span class="tag">' + escapeHtml(tag) + '</span>' +
         '<h2>' + escapeHtml(lastCrumb) + '</h2>' +
       '</div>' +
       '<div class="lesson-body" id="lessonBody"></div>' +
-      '<div class="card-actions"><button class="btn" id="printBtn">Print lesson</button></div>';
+      '<div class="card-actions">' +
+        '<button class="btn btn-ghost" id="printAllBtn">Print all &mdash; ' + escapeHtml(subjName) + '</button>' +
+        '<button class="btn" id="printBtn">Print lesson</button>' +
+      '</div>';
 
     document.getElementById("lessonBody").innerHTML = marked.parse(content);
     document.getElementById("printBtn").addEventListener("click", function(){ window.print(); });
+    document.getElementById("printAllBtn").addEventListener("click", function(){ printAllForSubject(state.subject); });
+  }
+
+  // Recursively walk a subject's tree, collecting every leaf lesson that has
+  // real content, along with the breadcrumb path leading to it.
+  function collectLessons(node, pathTrail, results){
+    if (!node) return;
+    if (isGroup(node)) {
+      var keys = Object.keys(node.children || {});
+      keys.forEach(function(k){
+        collectLessons(node.children[k], pathTrail.concat(k), results);
+      });
+    } else if (node.content && node.content.trim()) {
+      results.push({ path: pathTrail, content: node.content.trim() });
+    }
+  }
+
+  function printAllForSubject(subjectKey){
+    var subj = SUBJECTS.find(function(s){ return s.key === subjectKey; });
+    var subjName = subj ? subj.name : subjectKey;
+    var root = subjectRoot(subjectKey);
+    var lessons = [];
+    collectLessons(root, [], lessons);
+
+    var container = document.getElementById("printAllRoot");
+
+    if (!lessons.length) {
+      container.innerHTML =
+        '<div class="pa-cover"><div class="pa-eyebrow">' + escapeHtml(subjName) + '</div>' +
+        '<h1>No lesson plans found</h1>' +
+        '<div class="pa-meta">There is no content registered for this subject yet.</div></div>';
+      document.body.classList.add("printing-all");
+      window.print();
+      return;
+    }
+
+    var today = new Date();
+    var dateStr = today.toLocaleDateString(undefined, { year:"numeric", month:"long", day:"numeric" });
+
+    var html = '<div class="pa-cover">' +
+      '<div class="pa-eyebrow">Lesson Register &mdash; Complete Set</div>' +
+      '<h1>' + escapeHtml(subjName) + '</h1>' +
+      '<div class="pa-meta">' + lessons.length + ' lesson plan' + (lessons.length === 1 ? '' : 's') + ' &middot; printed ' + escapeHtml(dateStr) + '</div>' +
+      '</div>';
+
+    lessons.forEach(function(lesson){
+      var title = lesson.path.length ? lesson.path[lesson.path.length - 1] : subjName;
+      var crumb = [subjName].concat(lesson.path.slice(0, -1)).join(' / ');
+      html += '<section class="print-lesson">' +
+        '<div class="pa-breadcrumb">' + escapeHtml(crumb) + '</div>' +
+        '<h2 class="pa-title">' + escapeHtml(title) + '</h2>' +
+        '<div class="lesson-body">' + marked.parse(lesson.content) + '</div>' +
+      '</section>';
+    });
+
+    container.innerHTML = html;
+
+    var prevTitle = document.title;
+    document.title = subjName + " — All Lesson Plans";
+    document.body.classList.add("printing-all");
+
+    function cleanup(){
+      document.body.classList.remove("printing-all");
+      document.title = prevTitle;
+      window.removeEventListener("afterprint", cleanup);
+    }
+    window.addEventListener("afterprint", cleanup);
+
+    window.print();
   }
 
   function placeholderHtml(title, body){
