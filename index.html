@@ -352,6 +352,7 @@
 
   var SUBJECTS = [
     { key:"devotions", code:"DV", name:"Devotions" },
+    { key:"devotions2027", code:"D7", name:"Devotions 2027" },
     { key:"maths",     code:"MA", name:"Maths" },
     { key:"reading",   code:"RD", name:"Reading" },
     { key:"writing",   code:"WR", name:"Writing" },
@@ -365,6 +366,15 @@
   ];
 
   var DATA = window.LESSON_DATA || {};
+
+  // Downloadable unit plans (Word). Key = subject key + "/" + the unit name (2nd level of the path).
+  var UNIT_PLANS = {
+    "topic/Persia: The Royal Road Race": { file: "unit-plans/ACS_Topic_Unit_Plan_Term4_Persia.docx", label: "Download unit plan (Word)" },
+    "topic/Zimbabwe and South Africa":   { file: "unit-plans/ACS_Topic_Unit_Plan_Term3_Skybound.docx", label: "Download unit plan (Word)" }
+  };
+  function unitPlanFor(subjectKey, path){
+    return path && path.length > 1 ? UNIT_PLANS[subjectKey + "/" + path[1]] : null;
+  }
 
   function isGroup(node){ return node && typeof node === "object" && node.children !== undefined; }
   function hasRealContent(node){
@@ -546,6 +556,7 @@
       '</div>' +
       '<div class="lesson-body" id="lessonBody"></div>' +
       '<div class="card-actions">' +
+        (unitPlanFor(state.subject, state.path) ? '<a class="btn btn-ghost" style="text-decoration:none;display:inline-block" href="' + escapeHtml(unitPlanFor(state.subject, state.path).file) + '" download>&#11015; ' + escapeHtml(unitPlanFor(state.subject, state.path).label) + '</a>' : '') +
         '<button class="btn btn-ghost" id="printAllBtn">Print all &mdash; ' + escapeHtml(subjName) + '</button>' +
         '<button class="btn" id="printBtn">Print lesson</button>' +
       '</div>';
